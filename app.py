@@ -103,6 +103,7 @@ if uploaded_file is not None:
         mel_spec_resized = mel_spec_resized.reshape(1, 128, 128, 1)
 
         prediction = model.predict(mel_spec_resized)
+	st.write("Prediction shape:", prediction.shape)
         predicted_index = np.argmax(prediction)
         confidence_scores = prediction[0] * 100
         predicted_label = instrument_labels[predicted_index]
