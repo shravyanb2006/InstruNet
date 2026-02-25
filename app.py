@@ -5,22 +5,7 @@ import librosa
 import librosa.display
 import matplotlib.pyplot as plt
 import plotly.express as px
-import plotly.graph_objects as go
 import pandas as pd
-import json
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import ListFlowable, ListItem
-from reportlab.platypus import SimpleDocTemplate
-from reportlab.platypus import Paragraph
-from reportlab.platypus import Spacer
-from reportlab.platypus import Table
-from reportlab.platypus import TableStyle
-from reportlab.lib import colors
-import io
 import time
 
 # -------------------------------------------------------
@@ -29,13 +14,10 @@ import time
 st.set_page_config(page_title="InstruNet AI", page_icon="🎵", layout="wide")
 
 # -------------------------------------------------------
-# THEME STYLING
+# THEME
 # -------------------------------------------------------
 st.markdown("""
 <style>
-body {
-    background-color: #F4F9F9;
-}
 .main {
     background-color: #F4F9F9;
 }
@@ -76,12 +58,12 @@ with st.spinner("🎼 Loading AI model..."):
     time.sleep(1)
 
 # -------------------------------------------------------
-# LABELS (EDIT ACCORDING TO YOUR TRAINING ORDER)
+# AUTO DETECT CLASS COUNT
 # -------------------------------------------------------
-instrument_labels = [
-    "Piano", "Guitar", "Drums", "Violin",
-    "Flute", "Saxophone", "Trumpet", "Cello"
-]
+num_classes = model.output_shape[-1]
+
+# Generate default labels automatically
+instrument_labels = [f"Instrument {i}" for i in range(num_classes)]
 
 # -------------------------------------------------------
 # FILE UPLOAD
@@ -103,10 +85,11 @@ if uploaded_file is not None:
         mel_spec_resized = mel_spec_resized.reshape(1, 128, 128, 1)
 
         prediction = model.predict(mel_spec_resized)
-	st.write("Prediction shape:", prediction.shape)
-        predicted_index = np.argmax(prediction)
+        predicted_index = int(np.argmax(prediction))
         confidence_scores = prediction[0] * 100
+
         predicted_label = instrument_labels[predicted_index]
+        confidence_value = confidence_scores[predicted_index]
 
         time.sleep(1)
 
@@ -116,7 +99,7 @@ if uploaded_file is not None:
     st.markdown(f"""
     <div class="card">
         <h2>🎼 Predicted Instrument: {predicted_label}</h2>
-        <h4>Confidence: {confidence_scores[predicted_index]:.2f}%</h4>
+        <h4>Confidence: {confidence_value:.2f}%</h4>
     </div>
     """, unsafe_allow_html=True)
 
@@ -137,3 +120,19 @@ if uploaded_file is not None:
     img = librosa.display.specshow(mel_spec_db, sr=sr, x_axis='time', y_axis='mel')
     plt.colorbar(img, ax=ax)
     st.pyplot(fig)
+
+    # -------------------------------------------------------
+    # CONFIDENCE DISTRIBUTION
+    # -------------------------------------------------------
+    st.subheader("📊 Prediction Confidence Distribution")
+
+    df = pd.DataFrame({
+        "Instrument": instrument_labels,
+        "Confidence (%)": confidence_scores
+    })
+
+    fig_bar = px.bar(df, x="Instrument", y="Confidence (%)",
+                     color="Confidence (%)",
+                     color_continuous_scale="Teal")
+
+    st.plotly_chart(fig_bar, use_container_width=True)
