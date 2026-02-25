@@ -6,3 +6,6 @@ matplotlib
 soundfile
 scikit-learn
 pillow
+plotly
+reportlab
+pandas
