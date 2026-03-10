@@ -199,10 +199,10 @@ if uploaded_file is not None:
     st.subheader("Download Reports 📄")
 
     report_data={
-    "Predicted Instrument":predicted_label,
-    "Confidence":float(confidence_value),
-    "Segment Confidence":segment_conf
-    }
+"Predicted Instrument": str(predicted_label),
+"Confidence": float(confidence_value),
+"Segment Confidence": [float(x) for x in segment_conf]
+}
 
     json_data=json.dumps(report_data,indent=4)
 
