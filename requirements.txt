@@ -7,5 +7,5 @@ soundfile
 scikit-learn
 pillow
 plotly
-reportlab
 pandas
+reportlab
