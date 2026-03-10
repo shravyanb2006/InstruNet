@@ -4,82 +4,62 @@ import tensorflow as tf
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-import plotly.express as px
 import pandas as pd
 import json
 import io
 import time
-import tempfile
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
 
-# -------------------------------------------------
-# PAGE CONFIG
-# -------------------------------------------------
+st.set_page_config(page_title="InstruNet AI", page_icon="🎵", layout="wide")
 
-st.set_page_config(
-    page_title="InstruNet AI",
-    page_icon="🎵",
-    layout="wide"
-)
-
-# -------------------------------------------------
+# -----------------------------
 # UI STYLE
-# -------------------------------------------------
+# -----------------------------
 
 st.markdown("""
 <style>
-
-.main {
-background-color:#F5FBFB;
+.main{
+background-color:#F4FBFB;
 }
 
-.title{
-font-size:42px;
-font-weight:700;
-color:#233;
-}
-
-.subtitle{
-font-size:18px;
-color:#5DA9A6;
+h1{
+color:#2C6E6E;
 }
 
 .card{
-background:#E7F4F3;
-padding:25px;
+background:#E8F6F6;
+padding:20px;
 border-radius:15px;
 margin-bottom:20px;
-box-shadow:0px 2px 8px rgba(0,0,0,0.1);
+box-shadow:0px 4px 8px rgba(0,0,0,0.1);
 }
-
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="title">🎵 InstruNet AI</p>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">AI Powered Musical Instrument Intelligence Platform</p>', unsafe_allow_html=True)
+st.title("🎵 InstruNet AI")
+st.caption("AI Powered Musical Instrument Classification & Health Analysis")
 
 st.divider()
 
-# -------------------------------------------------
+# -----------------------------
 # LOAD MODEL
-# -------------------------------------------------
+# -----------------------------
 
 @st.cache_resource
 def load_model():
     return tf.keras.models.load_model("instrunet_milestone2_final.keras")
 
-with st.spinner("Loading AI model..."):
-    model = load_model()
+model = load_model()
 
 num_classes = model.output_shape[-1]
 instrument_labels = [f"Instrument {i}" for i in range(num_classes)]
 
-# -------------------------------------------------
+# -----------------------------
 # AUDIO UPLOAD
-# -------------------------------------------------
+# -----------------------------
 
-st.subheader("Upload Audio 🎧")
+st.subheader("Upload Instrument Audio")
 
 uploaded_file = st.file_uploader("Upload WAV or MP3", type=["wav","mp3"])
 
@@ -87,7 +67,7 @@ if uploaded_file:
 
     st.audio(uploaded_file)
 
-    with st.spinner("Analyzing audio with AI..."):
+    with st.spinner("AI analyzing audio..."):
         time.sleep(1)
 
         y, sr = librosa.load(uploaded_file, sr=22050)
@@ -104,11 +84,11 @@ if uploaded_file:
         probabilities = prediction[0]*100
 
         predicted_label = instrument_labels[predicted_index]
-        confidence = probabilities[predicted_index]
+        confidence = float(probabilities[predicted_index])
 
-# -------------------------------------------------
-# RESULT CARD
-# -------------------------------------------------
+# -----------------------------
+# RESULT
+# -----------------------------
 
     st.markdown(f"""
     <div class="card">
@@ -117,31 +97,24 @@ if uploaded_file:
     </div>
     """, unsafe_allow_html=True)
 
-# -------------------------------------------------
+# -----------------------------
 # WAVEFORM
-# -------------------------------------------------
+# -----------------------------
 
-    st.subheader("Audio Waveform 🌊")
+    st.subheader("Audio Waveform")
 
-    waveform_df = pd.DataFrame({
-        "Amplitude":y[:8000]
-    })
+    fig_wave = plt.figure()
+    plt.plot(y[:8000])
+    plt.title("Audio Waveform")
+    st.pyplot(fig_wave)
 
-    waveform_chart = px.line(
-        waveform_df,
-        y="Amplitude",
-        title="Audio Waveform"
-    )
-
-    st.plotly_chart(waveform_chart, use_container_width=True)
-
-# -------------------------------------------------
+# -----------------------------
 # MEL SPECTROGRAM
-# -------------------------------------------------
+# -----------------------------
 
-    st.subheader("Mel Spectrogram 🔥")
+    st.subheader("Mel Spectrogram")
 
-    fig, ax = plt.subplots()
+    fig_spec, ax = plt.subplots()
 
     img = librosa.display.specshow(
         mel_db,
@@ -152,13 +125,13 @@ if uploaded_file:
 
     plt.colorbar(img, ax=ax)
 
-    st.pyplot(fig)
+    st.pyplot(fig_spec)
 
-# -------------------------------------------------
+# -----------------------------
 # SEGMENT ANALYSIS
-# -------------------------------------------------
+# -----------------------------
 
-    st.subheader("Timeline Segment Analysis ⏱")
+    st.subheader("3-Segment Timeline Analysis")
 
     length = len(y)
     segment = length//3
@@ -179,25 +152,19 @@ if uploaded_file:
 
         seg_conf.append(float(seg_pred[0][predicted_index]*100))
 
-    timeline_df = pd.DataFrame({
-        "Segment":["Beginning","Middle","End"],
-        "Confidence":seg_conf
-    })
+    fig_time = plt.figure()
 
-    timeline_chart = px.line(
-        timeline_df,
-        x="Segment",
-        y="Confidence",
-        markers=True
-    )
+    plt.plot(["Beginning","Middle","End"], seg_conf, marker='o')
+    plt.ylabel("Confidence")
+    plt.title("Segment Prediction Confidence")
 
-    st.plotly_chart(timeline_chart, use_container_width=True)
+    st.pyplot(fig_time)
 
-# -------------------------------------------------
+# -----------------------------
 # INSTRUMENT HEALTH
-# -------------------------------------------------
+# -----------------------------
 
-    st.subheader("Instrument Health 🩺")
+    st.subheader("Instrument Health")
 
     spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=y,sr=sr))
     rms = np.mean(librosa.feature.rms(y=y))
@@ -206,115 +173,72 @@ if uploaded_file:
     health_score = spectral_centroid*0.0001 + rms*10 - zcr*10
 
     if health_score > 0.8:
-        health = "Excellent Resonance 🎼"
+        health = "Excellent Resonance"
     elif health_score > 0.5:
-        health = "Stable Harmonics 🎵"
+        health = "Stable Harmonics"
     else:
-        health = "Needs Tuning ⚠"
+        health = "Needs Tuning"
 
     st.success(f"Health Status: {health}")
 
-# -------------------------------------------------
+# -----------------------------
 # PROBABILITY DISTRIBUTION
-# -------------------------------------------------
+# -----------------------------
 
-    st.subheader("Prediction Composition 📊")
+    st.subheader("Prediction Probability Distribution")
 
     prob_df = pd.DataFrame({
         "Instrument":instrument_labels,
         "Confidence":probabilities
     })
 
-    bar_chart = px.bar(
-        prob_df,
-        x="Instrument",
-        y="Confidence",
-        color="Confidence"
-    )
+    fig_bar = plt.figure()
 
-    st.plotly_chart(bar_chart,use_container_width=True)
+    plt.bar(instrument_labels, probabilities)
+    plt.xticks(rotation=45)
+    plt.ylabel("Confidence %")
+    plt.title("Prediction Confidence")
 
-    pie_chart = px.pie(
-        prob_df,
-        names="Instrument",
-        values="Confidence"
-    )
+    st.pyplot(fig_bar)
 
-    st.plotly_chart(pie_chart,use_container_width=True)
+    fig_pie = plt.figure()
 
-# -------------------------------------------------
+    plt.pie(probabilities, labels=instrument_labels, autopct='%1.1f%%')
+    plt.title("Prediction Composition")
+
+    st.pyplot(fig_pie)
+
+# -----------------------------
 # AI EXPLANATION
-# -------------------------------------------------
+# -----------------------------
 
-    st.subheader("AI Explanation 🧠")
+    st.subheader("AI Explanation")
 
-    explanation = f"""
-The AI predicted **{predicted_label}** because the audio contained 
-spectral patterns and harmonic structures that closely match the learned 
-features of this instrument. The mel spectrogram shows energy distribution 
-across frequencies that aligns with this instrument's acoustic signature.
+    explanation=f"""
+The AI predicted **{predicted_label}** because the sound contained frequency 
+patterns and harmonic signatures similar to those learned for this instrument.
+The mel spectrogram reveals the energy distribution across frequency bands
+which strongly matches the model's training features.
 """
 
     st.info(explanation)
 
-# -------------------------------------------------
-# SAVE IMAGES FOR PDF
-# -------------------------------------------------
-
-    # SAVE IMAGES FOR PDF (using matplotlib instead of plotly)
-
-wave_img="wave.png"
-spec_img="spec.png"
-bar_img="bar.png"
-pie_img="pie.png"
-time_img="timeline.png"
-
-# Waveform
-plt.figure()
-plt.plot(y[:8000])
-plt.title("Audio Waveform")
-plt.savefig(wave_img)
-plt.close()
-
-# Spectrogram (already matplotlib)
-fig.savefig(spec_img)
-
-# Bar chart
-plt.figure()
-plt.bar(instrument_labels, probabilities)
-plt.xticks(rotation=45)
-plt.title("Prediction Confidence")
-plt.tight_layout()
-plt.savefig(bar_img)
-plt.close()
-
-# Pie chart
-plt.figure()
-plt.pie(probabilities, labels=instrument_labels, autopct='%1.1f%%')
-plt.title("Prediction Distribution")
-plt.savefig(pie_img)
-plt.close()
-
-# Timeline chart
-plt.figure()
-plt.plot(["Beginning","Middle","End"], seg_conf, marker='o')
-plt.title("Segment Confidence")
-plt.ylabel("Confidence")
-plt.savefig(time_img)
-plt.close()
-
-# -------------------------------------------------
-# REPORT DOWNLOAD
-# -------------------------------------------------
-
-    st.subheader("Download Reports 📄")
+# -----------------------------
+# REPORT DATA
+# -----------------------------
 
     report_data={
         "Instrument":predicted_label,
-        "Confidence":float(confidence),
+        "Confidence":confidence,
         "Segment Confidence":seg_conf,
         "Health":health
     }
+
+# -----------------------------
+# DOWNLOAD REPORTS
+# -----------------------------
+
+    st.subheader("Download Reports")
 
 # JSON
 
@@ -338,6 +262,18 @@ plt.close()
 
 # PDF
 
+    wave_img="wave.png"
+    spec_img="spec.png"
+    bar_img="bar.png"
+    pie_img="pie.png"
+    time_img="timeline.png"
+
+    fig_wave.savefig(wave_img)
+    fig_spec.savefig(spec_img)
+    fig_bar.savefig(bar_img)
+    fig_pie.savefig(pie_img)
+    fig_time.savefig(time_img)
+
     buffer=io.BytesIO()
 
     doc=SimpleDocTemplate(buffer)
@@ -346,12 +282,12 @@ plt.close()
 
     story=[]
 
-    story.append(Paragraph("InstruNet AI Analysis Report",styles['Title']))
+    story.append(Paragraph("InstruNet AI Report",styles['Title']))
     story.append(Spacer(1,20))
 
-    story.append(Paragraph(f"Predicted Instrument: {predicted_label}",styles['Normal']))
+    story.append(Paragraph(f"Instrument: {predicted_label}",styles['Normal']))
     story.append(Paragraph(f"Confidence: {confidence:.2f}%",styles['Normal']))
-    story.append(Paragraph(f"Health Status: {health}",styles['Normal']))
+    story.append(Paragraph(f"Health: {health}",styles['Normal']))
 
     story.append(Spacer(1,20))
 

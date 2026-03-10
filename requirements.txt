@@ -4,9 +4,6 @@ librosa
 numpy
 matplotlib
 soundfile
-scikit-learn
-pillow
-plotly
 pandas
 reportlab
-kaleido
+scikit-learn
