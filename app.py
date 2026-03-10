@@ -261,18 +261,47 @@ across frequencies that aligns with this instrument's acoustic signature.
 # SAVE IMAGES FOR PDF
 # -------------------------------------------------
 
-    wave_img="wave.png"
-    spec_img="spec.png"
-    bar_img="bar.png"
-    pie_img="pie.png"
-    time_img="timeline.png"
+    # SAVE IMAGES FOR PDF (using matplotlib instead of plotly)
 
-    waveform_chart.write_image(wave_img)
-    bar_chart.write_image(bar_img)
-    pie_chart.write_image(pie_img)
-    timeline_chart.write_image(time_img)
+wave_img="wave.png"
+spec_img="spec.png"
+bar_img="bar.png"
+pie_img="pie.png"
+time_img="timeline.png"
 
-    fig.savefig(spec_img)
+# Waveform
+plt.figure()
+plt.plot(y[:8000])
+plt.title("Audio Waveform")
+plt.savefig(wave_img)
+plt.close()
+
+# Spectrogram (already matplotlib)
+fig.savefig(spec_img)
+
+# Bar chart
+plt.figure()
+plt.bar(instrument_labels, probabilities)
+plt.xticks(rotation=45)
+plt.title("Prediction Confidence")
+plt.tight_layout()
+plt.savefig(bar_img)
+plt.close()
+
+# Pie chart
+plt.figure()
+plt.pie(probabilities, labels=instrument_labels, autopct='%1.1f%%')
+plt.title("Prediction Distribution")
+plt.savefig(pie_img)
+plt.close()
+
+# Timeline chart
+plt.figure()
+plt.plot(["Beginning","Middle","End"], seg_conf, marker='o')
+plt.title("Segment Confidence")
+plt.ylabel("Confidence")
+plt.savefig(time_img)
+plt.close()
 
 # -------------------------------------------------
 # REPORT DOWNLOAD
